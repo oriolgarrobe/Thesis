@@ -133,9 +133,11 @@ class PSU:
         """
         Pout = self.P_out()
         Pdis = self.P_Dis_Tot()
-        #n = np.flip(Pout) / (np.flip(Pout) + np.flip(Pdis))
-        n = Pout / (Pout + Pdis)
-        return n.round(3)
+        if (isinstance(Pout, int) or isinstance(Pout, float)):
+            n = Pout / (Pout + Pdis)
+        else:
+            n = np.flip(Pout) / (np.flip(Pout) + np.flip(Pdis))
+        return n
         
     def I_in(self):
         """
@@ -143,7 +145,7 @@ class PSU:
         """
         n = self.efficiency()
         I_in = self.Iout * self.Vout / (n * self.Vin)
-        return I_in.round(3)
+        return I_in
     
     def P_in(self):
         """
