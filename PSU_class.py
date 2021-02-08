@@ -1,20 +1,16 @@
+import numpy as np
+
 class PSU:
-    def __init__(self, Vout, LS_Ron, Iout, Vin, HS_Tsw, Fsw, Vbody_diode, LS_QRR, DT, L, DCR, ESR_Cin, P_IC):
+    def __init__(self, Vout, LS_Ron, Iout, Vin, Fsw, Vbody_diode, L, DCR, P_IC):
         self.Vout = Vout                  #Vpre_static -> SRD: UP3V3M = VPRE
         self.LS_Ron = LS_Ron              #Rds_on1 -> SRD: Q0700
         self.HS_Ron = LS_Ron              #Rds_on1 -> SRD: Q0700
         self.Iout = Iout                  #Iload_3V3M
         self.Vin = Vin                    #Vpre_in V -> INPUT!!!!
-        self.HS_Tsw = HS_Tsw              #TSW_vpre [ns]
-        self.LS_Tsw = HS_Tsw              #TSW_vpre [ns] 
         self.Fsw = Fsw                    #fSW_pre [kHz]
         self.Vbody_diode = Vbody_diode    #VForward_Voltage1
-        self.LS_QRR = LS_QRR              #QRR_charge1 [nC]
-        self.DTr = DT                     #DTrising [ns]
-        self.DTf = DT                     #DTfalling [ns]
         self.L = L                        #LVPRE [microH]
         self.DCR = DCR                    #R_DC_L_VPRE_temp [mOhms]
-        self.ESR_Cin = ESR_Cin            #ESR_3V3M_IN [mOhms]
         self.P_IC = P_IC                  # PMIC IC power dissipated [mW] P_Dissip_IC_3V3M
         
     def duty_cycle(self):
@@ -44,28 +40,33 @@ class PSU:
         """
         HS Switching-loss in the MOSFET -> PFET_3V3M_SW_HS_loss
         """
-        P_HS_sw = (self.Vin * self.Iout) * self.HS_Tsw * self.Fsw #Watts
+        HS_Tsw = 5.17*1e-9 #TSW_vpre [ns]
+        P_HS_sw = (self.Vin * self.Iout) * HS_Tsw * self.Fsw #Watts
         return P_HS_sw
     
     def SW_LS_loss(self):
         """
         LS Body diode Reverse recovery-loss -> PFET_3V3M_SW_LS_loss
         """
-        P_LS_sw = (self.Vbody_diode * self.Iout) * self.LS_Tsw * self.Fsw #Watts
+        LS_Tsw = 5.17*1e-9 #TSW_vpre [ns]
+        P_LS_sw = (self.Vbody_diode * self.Iout) * LS_Tsw * self.Fsw #Watts
         return P_LS_sw
     
     def RR_LS_loss(self):
         """
         LS Body diode Reverse recovery-loss -> PFET_3V3M_RR_LS_loss
         """
-        P_Qrr = self.LS_QRR * self.Vin * self.Fsw / 2 #Watts
+        LS_QRR = 120*1e-9 #QRR_charge1 [nC]
+        P_Qrr = LS_QRR * self.Vin * self.Fsw / 2 #Watts
         return P_Qrr
     
     def DT_LS_loss(self):
         """
         LS Dead time-loss in the MOSFET body diode -> PFET_3V3M_DT_LS_loss
         """
-        P_DT = self.Vbody_diode * self.Iout * (self.DTr + self.DTf) * self.Fsw #Watts
+        DTr = 20*1e-9 #DTrising [ns]
+        DTf = 20*1e-9 #DTfalling [ns]
+        P_DT = self.Vbody_diode * self.Iout * (DTr + DTf) * self.Fsw #Watts
         return P_DT
     
     def AI_L(self):
@@ -96,9 +97,11 @@ class PSU:
         """
         Input capacitors Power Dissipated -> P_Dissip_Cin_3V3M
         """
+        HS_Tsw = 5.17*1e-9 #TSW_vpre [ns]
+        ESR_Cin = 4.23*1e-3 #ESR_3V3M_IN [mOhms]
         D = self.duty_cycle()
-        I_Cin_rms = self.Iout * (D * ((1-D) + ((1-D) * self.HS_Tsw * self.Vout /(self.Iout * self.L))/12))**0.5
-        P_Cin = self.ESR_Cin * I_Cin_rms**2
+        I_Cin_rms = self.Iout * (D * ((1-D) + ((1-D) * HS_Tsw * self.Vout /(self.Iout * self.L))/12))**0.5
+        P_Cin = ESR_Cin * I_Cin_rms**2
         return P_Cin
     
     def P_Dis_Tot(self):
