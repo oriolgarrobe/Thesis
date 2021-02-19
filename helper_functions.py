@@ -75,6 +75,7 @@ def simulation(n_points, base_model, base_class, dist):
 # github.com/samread81/Distribution-Fitting-Used_Car_Dataset/blob/master/Workbook.ipynb
 def compute_chi_square(data):
     y,size,_ = standarize(data, 0.99, 0.01)
+    y = data # Check this
     dist_names = ['weibull_min', 'norm', 'weibull_max', 'beta', 'invgauss',
                   'uniform', 'gamma', 'expon', 'lognorm', 'pearson3', 'triang']
     
