@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 import scipy.stats
+from matplotlib import pyplot as plt
 
 
 def randomize(tolerance, dist="Nominal", cp = 1.67):
@@ -74,7 +75,8 @@ def simulation(n_points, base_model, base_class, dist):
 
 # github.com/samread81/Distribution-Fitting-Used_Car_Dataset/blob/master/Workbook.ipynb
 def compute_chi_square(data):
-    y,size,_ = standarize(data, 0.99, 0.01)
+    #y,size,_ = standarize(data, 0.99, 0.01)
+    size = len(data)
     y = data # Check this
     dist_names = ['weibull_min', 'norm', 'weibull_max', 'beta', 'invgauss',
                   'uniform', 'gamma', 'expon', 'lognorm', 'pearson3', 'triang']
@@ -158,3 +160,41 @@ def LRT(best_options, n_datasets, n_sim):
     Quantile_Q = np.quantile(Q_array, 0.95)
 
     return Q, Quantile_Q
+
+import math
+
+def qqplot(data, best_options):
+    """
+    QQ Plot: Comment this!
+    """
+    name_A = best_options.iloc[0]['Distribution']
+    name_B = best_options.iloc[1]['Distribution']
+    
+    params_A = best_options.iloc[0]['Parameters']
+    params_B = best_options.iloc[1]['Parameters']
+    
+    dist_A = getattr(scipy.stats, name_A)
+    data_A = dist_A.rvs(*params_A, size = 2000)
+    
+    dist_B = getattr(scipy.stats, name_B)
+    data_B = dist_B.rvs(*params_B, size = 2000)
+    
+    min_line = min(math.floor(min(data_A)), math.floor(min(data_B)))
+    MAX_line = max(math.ceil(max(data_A)), math.ceil(max(data_B)))
+    
+    f, ax = plt.subplots(figsize=(8,8))
+    ax.plot([min_line, MAX_line], [min_line, MAX_line], ls="--", c=".3")
+    
+    percentile_bins = np.linspace(0,100,51)
+    percentile_cutoffs = np.percentile(data, percentile_bins)
+    percentile_cutoffs_A = np.percentile(data_A, percentile_bins)
+    percentile_cutoffs_B = np.percentile(data_B, percentile_bins)
+    
+    ax.scatter(percentile_cutoffs, percentile_cutoffs_A, c='orange', label = str(name_A) + ' Distribution', s = 40)
+    ax.scatter(percentile_cutoffs,percentile_cutoffs_B,c='blue',label = str(name_B) + ' Distribution', s = 40)
+    
+    ax.set_xlabel('Theoretical cumulative distribution')
+    ax.set_ylabel('Observed cumulative distribution')
+    ax.legend()
+    plt.show()
+    
