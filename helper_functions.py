@@ -50,6 +50,7 @@ def simulation(n_points, base_model, base_class, dist):
     - n_points : number of points simulated
     - dist_components: distributon assumed for the components
     """
+    x = np.zeros((n_points, 9))
     y = np.zeros(n_points)
     for i in range(n_points):
         
@@ -64,14 +65,18 @@ def simulation(n_points, base_model, base_class, dist):
         DCR_r = randomize(base_model.DCR, dist)
         P_IC_r = randomize(base_model.P_IC, dist)
         
+        # Create Input Array
+        x[i] = np.array([Vout_r, LS_Ron_r, Iout_r, Vin_r, Fsw_r, Vbody_diode_r, L_r, DCR_r, P_IC_r])
         #Sensible Analysis
         # modify one value to plug into the class
         # "sens_var" = randomize(base_model."sens_var", sens_dist)
 
         sim_PSU = base_class(Vout_r, LS_Ron_r, Iout_r, Vin_r, Fsw_r, Vbody_diode_r, L_r, DCR_r, P_IC_r)
         
+        # Create Ouput Array
         y[i] = sim_PSU.P_in()
-    return y
+        
+    return x, y
 
 # github.com/samread81/Distribution-Fitting-Used_Car_Dataset/blob/master/Workbook.ipynb
 def compute_chi_square(data):
