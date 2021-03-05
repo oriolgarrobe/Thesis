@@ -29,6 +29,50 @@ def randomize(tolerance, dist="Nominal", cp = 1.67):
     else:
         return tolerance[1]
     
+def randomize_R(tolerance, dist="Nominal", cp = 5.562):
+    """
+    Function that returns a value within specified margins given component properties.
+    Input:
+       - Tolerance: Numpy Array. Properties of the electronic component. Array with shape = (3,).
+       - dist: String. Statistical distribution from which to sample.
+         * Uni: samples a value from a uniform distribution.
+         * Gauss: samples a value from a Gaussian distribution.
+         * Nominal: returns the nominal value.
+       - cp: Float. Process capability (6 sigma context) required for the component.
+    Output:
+       - Float. Sampled from distribution.
+    """
+    if dist == "Uni":
+        return random.uniform(tolerance[0], tolerance[2])
+    elif dist == "Gauss":
+        mu = tolerance[1]
+        sigma = (tolerance[2]-tolerance[0])/(6 * cp)
+        return random.gauss(mu, sigma)
+    else:
+        return tolerance[1]
+    
+def randomize_L(tolerance, dist="Nominal", cp = 1.67):
+    """
+    Function that returns a value within specified margins given component properties.
+    Input:
+       - Tolerance: Numpy Array. Properties of the electronic component. Array with shape = (3,).
+       - dist: String. Statistical distribution from which to sample.
+         * Uni: samples a value from a uniform distribution.
+         * Gauss: samples a value from a Gaussian distribution.
+         * Nominal: returns the nominal value.
+       - cp: Float. Process capability (6 sigma context) required for the component.
+    Output:
+       - Float. Sampled from distribution.
+    """
+    if dist == "Uni":
+        return random.uniform(tolerance[0], tolerance[2])
+    elif dist == "Gauss":
+        mu = tolerance[1]
+        sigma = 0.06
+        return random.gauss(mu, sigma)
+    else:
+        return tolerance[1]
+    
 
 def standarize(y,pct,pct_lower):
     sc = StandardScaler() 
@@ -56,12 +100,12 @@ def simulation(n_points, base_model, base_class, dist):
         
         # Randomize numbers
         Vout_r = randomize(base_model.Vout, dist)
-        LS_Ron_r = randomize(base_model.LS_Ron, dist)
+        LS_Ron_r = randomize_R(base_model.LS_Ron, dist)
         Iout_r = randomize(base_model.Iout, dist)
         Vin_r = randomize(base_model.Vin, dist)
         Fsw_r = randomize(base_model.Fsw, dist)
         Vbody_diode_r = randomize(base_model.Vbody_diode, dist)
-        L_r = randomize(base_model.L, dist)
+        L_r = randomize_L(base_model.L, dist)
         DCR_r = randomize(base_model.DCR, dist)
         P_IC_r = randomize(base_model.P_IC, dist)
         
