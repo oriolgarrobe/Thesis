@@ -144,6 +144,7 @@ def compute_chi_square(data):
     for distribution in dist_names:
         # Set up candidate distribution
         
+        # param = get_parameters(data, method, distribution)        
         dist = getattr(scipy.stats, distribution)
         param = dist.fit(y)
         parameters.append(param)
