@@ -68,7 +68,7 @@ def randomize_L(tolerance, dist="Nominal", cp = 1.67):
         return random.uniform(tolerance[0], tolerance[2])
     elif dist == "Gauss":
         mu = tolerance[1]
-        sigma = 0.06
+        sigma = 0.06E-6
         return random.gauss(mu, sigma)
     else:
         return tolerance[1]
