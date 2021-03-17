@@ -246,5 +246,7 @@ def qqplot(data, best_options):
     ax.set_xlabel('Theoretical cumulative distribution')
     ax.set_ylabel('Observed cumulative distribution')
     ax.legend()
+    plt.savefig('Data/Plots/qq_plot_MLE.png')
     plt.show()
+    
     

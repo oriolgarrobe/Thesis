@@ -5,12 +5,13 @@ import scipy.stats
 class Method_of_Moments:
     def __init__(self, data):
         self.data = data
-    def get_moments(self):
+        
+    def get_moments(self, data):
         moments={}
-        moments['mean'] = np.mean(self.data)
-        moments['variance'] = np.var(self.data)
-        moments['skew'] = scipy.stats.skew(self.data)
-        moments['kurtosis'] = scipy.stats.kurtosis(self.data)
+        moments['mean'] = np.mean(data)
+        moments['variance'] = np.var(data)
+        moments['skew'] = scipy.stats.skew(data)
+        moments['kurtosis'] = scipy.stats.kurtosis(data)
         return moments
     
     def uniform_from_moments(self):
@@ -22,7 +23,7 @@ class Method_of_Moments:
         beta_data = (self.data - min(self.data)) / (max(self.data) - min(self.data))
 
         # Moments of data
-        moments = get_moments(beta_data)
+        moments = self.get_moments(beta_data)
 
         # Sample Measures
         Y_bar = moments['mean']
@@ -41,7 +42,7 @@ class Method_of_Moments:
         gamma_data = self.data - min(self.data)
 
         # Moments of data
-        moments = get_moments(gamma_data)
+        moments = self.get_moments(gamma_data)
 
         # Sample Measures
         Y_bar = moments['mean'] 
@@ -56,7 +57,7 @@ class Method_of_Moments:
     
     def norm_from_moments(self):
         # Moments of data
-        moments = get_moments(self.data)
+        moments = self.get_moments(self.data)
 
         # Distribution Parameters
         mu = moments['mean']
@@ -69,7 +70,7 @@ class Method_of_Moments:
         lognorm_data = self.data - min(self.data)
 
         # Moments of data
-        moments = get_moments(lognorm_data)
+        moments = self.get_moments(lognorm_data)
 
         # Sample Measures
         Y_bar = moments['mean']
