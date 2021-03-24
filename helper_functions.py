@@ -180,8 +180,11 @@ def compute_chi_square(data):
     return results
 
 def LRT(best_options, n_datasets, n_sim):
-    dist_A = best_options.iloc[0]['Distribution']
-    dist_B = best_options.iloc[1]['Distribution']
+    """
+    Docs: 
+    """
+    dist_A = getattr(scipy.stats, best_options.iloc[0]['Distribution'])
+    dist_B = getattr(scipy.stats, best_options.iloc[1]['Distribution'])
     ll_A = best_options.iloc[0]['Log_likelihood']
     ll_B = best_options.iloc[1]['Log_likelihood']
     param = best_options.iloc[0]['Parameters']
@@ -191,25 +194,23 @@ def LRT(best_options, n_datasets, n_sim):
     
     for i in range(n_datasets):
         # Generate dataset
-        sampling_dist = getattr(scipy.stats, dist_A)
-        dataset = sampling_dist.rvs(*param, size = n_sim)
+        dataset = dist_A.rvs(*param, size = n_sim)
         
         # Fit models
-        dist_A_i = getattr(scipy.stats, dist_A)
-        param_A_i = dist_A_i.fit(dataset)
-        ll_A_i = np.sum(np.log(dist_A_i.pdf(dataset, *param_A_i)))
+        param_A_i = dist_A.fit(dataset)
+        ll_A_i = np.sum(np.log(dist_A.pdf(dataset, *param_A_i)))
 
-        dist_B_i = getattr(scipy.stats, dist_B)
-        param_B_i = dist_B_i.fit(dataset)
-        ll_B_i = np.sum(np.log(dist_B_i.pdf(dataset, *param_B_i)))
+        param_B_i = dist_B.fit(dataset)
+        ll_B_i = np.sum(np.log(dist_B.pdf(dataset, *param_B_i)))
         
         # Compute Qi
         Q_i = 2 * (ll_B_i - ll_A_i)
         Q_array[i] = Q_i 
     
     Quantile_Q = np.quantile(Q_array, 0.95)
+    p_value = np.sum(Q_arrray>Q)/n_datasets
 
-    return Q, Quantile_Q
+    return Q, P_value, Quantile_Q
 
 import math
 
