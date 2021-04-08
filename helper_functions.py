@@ -85,8 +85,8 @@ def standarize(y,pct,pct_lower):
     y_std =sc.transform(yy)
     y_std = y_std.flatten()
     return y_std,len_y,y
-    
-from random import random
+
+
 def simulation(n_points, base_model, base_class, dist):
     """
     Function that simulates observations for bla bla. 
