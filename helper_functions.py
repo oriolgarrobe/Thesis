@@ -214,40 +214,59 @@ def LRT(best_options, n_datasets, n_sim):
 
 import math
 
-def qqplot(data, best_options):
+def qqplot(data, best_options, n_distributions, title, name_file):
     """
     QQ Plot: Comment this!
+    Inputs:
+        - data: Simulated data. Values of the Power output.
+        - best_options: dataframe with the results of the fit -> columns |Distribution | Parameters |
+            * Distribution: string with the name of the fitted distribution
+            * Parameters: tuple with the values of the distribution parameters
+        - n_distributions: number of distributions desired to be plotted, it should be a number smaller than the number of rows
+                           in the 'best_options' dataframe.
+        - title: String that will be the title of the plot.
+        - name_file: string that will be the name og the saved file. 
     """
-    name_A = best_options.iloc[0]['Distribution']
-    name_B = best_options.iloc[1]['Distribution']
-    
-    params_A = best_options.iloc[0]['Parameters']
-    params_B = best_options.iloc[1]['Parameters']
-    
-    dist_A = getattr(scipy.stats, name_A)
-    data_A = dist_A.rvs(*params_A, size = 2000)
-    
-    dist_B = getattr(scipy.stats, name_B)
-    data_B = dist_B.rvs(*params_B, size = 2000)
-    
-    min_line = min(math.floor(min(data_A)), math.floor(min(data_B)))
-    MAX_line = max(math.ceil(max(data_A)), math.ceil(max(data_B)))
-    
-    f, ax = plt.subplots(figsize=(8,8))
-    ax.plot([min_line, MAX_line], [min_line, MAX_line], ls="--", c=".3")
-    
+    # Cutoffs
     percentile_bins = np.linspace(0,100,51)
     percentile_cutoffs = np.percentile(data, percentile_bins)
-    percentile_cutoffs_A = np.percentile(data_A, percentile_bins)
-    percentile_cutoffs_B = np.percentile(data_B, percentile_bins)
     
-    ax.scatter(percentile_cutoffs, percentile_cutoffs_A, c='orange', label = str(name_A) + ' Distribution', s = 40)
-    ax.scatter(percentile_cutoffs,percentile_cutoffs_B,c='blue',label = str(name_B) + ' Distribution', s = 40)
+    # Alocate memory
+    percentile_data = np.zeros((n_distributions, 2000))
+    data_cutoffs = np.zeros((n_distributions, 51))
+    names = []
+    min_line = 999999
+    MAX_line = -999999
     
+    for i in range(n_distributions):
+        
+        # Distribution Values
+        name_dist = best_options.iloc[i]['Distribution']
+        names.append(name_dist)
+        
+        parameters_dist = best_options.iloc[i]['Parameters']
+        class_dist = getattr(scipy.stats, name_dist)
+        
+        percentile_data[i] = class_dist.rvs(*parameters_dist, size = 2000)
+        data_cutoffs[i] = np.percentile(percentile_data[i], percentile_bins)
+               
+        #Plot size
+        if math.floor(min(percentile_data[i])) < min_line:
+            min_line = math.floor(min(percentile_data[i]))
+        if math.ceil(max(percentile_data[i])) > MAX_line:
+            MAX_line = math.ceil(max(percentile_data[i]))
+            
+    #Plot
+    f, ax = plt.subplots(figsize=(8,8))
+    ax.plot([min_line, MAX_line], [min_line, MAX_line], ls="--", c=".3")
+    colors = ['orange', 'blue', 'green', 'yellow', 'red', 'pink']
+    for i in range(n_distributions):
+        ax.scatter(percentile_cutoffs, data_cutoffs[i], c=colors[i], label = names[i] + ' Distribution', s = 40)
+           
     ax.set_xlabel('Theoretical cumulative distribution')
     ax.set_ylabel('Observed cumulative distribution')
     ax.legend()
-    plt.savefig('Data/Plots/qq_plot_MLE.png')
+    plt.title(title)
+    plt.savefig('Data/Plots/'+name_file+".png")
     plt.show()
-    
     
