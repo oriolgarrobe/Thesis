@@ -162,7 +162,8 @@ def compute_chi_square(data):
         # Chi-Square
         expected_frequency = np.array(expected_frequency) * size
         cum_expected_frequency = np.cumsum(expected_frequency)
-        ss = round(sum (((cum_expected_frequency - cum_obs_frequency) ** 2) / cum_obs_frequency), 0)
+        #ss = round(sum (((cum_expected_frequency - cum_obs_frequency) ** 2) / cum_obs_frequency), 0)
+        ss = sum (((cum_expected_frequency - cum_obs_frequency) ** 2) / cum_obs_frequency)
         chi_square_statistics.append(ss)
     
     # Sort
