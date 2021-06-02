@@ -75,6 +75,17 @@ def randomize_L(tolerance, dist="Nominal", cp = 1.67):
     
 
 def standarize(y,pct,pct_lower):
+    """
+    Function that standardizes the data.
+    Input:
+        - y: numpy array with the data.
+        - pct: upper quantile.
+        - pct_lower: lower quantile.
+    Output:
+        - y_std: numpy array of the standardized data.
+        - len_y: int with the number of observations in the data.
+        - y: numpy array of the data
+    """
     sc = StandardScaler() 
     y.sort()
     len_y = len(y)
@@ -122,13 +133,57 @@ def simulation(n_points, base_model, base_class, dist):
         
     return x, y
 
+
+def log_likelihood_foo(data, parameters, dist):
+    """
+    Function that computes the log likelihood of a family of distributions fit.
+    Input:
+        - data: numpy array with the observations.
+        - parameters: tuple. estimate parameters of the family of distribution fitted
+        - dist: string with the name of the family of distribution.
+    Output:
+        - log_likelihood: int with the value of the log likelihood.
+    """
+    return np.sum(np.log(dist.pdf(data[1:-1], *parameters)))
+
+
+from MoM_class import Method_of_Moments
+def get_parameters(data, method, distribution):
+    """
+    Function that gets parameter estimates using the selected method, Maximum Likelihood Estimation or Method of Moments.
+    Inputs:
+        - data: numpy array. Observations of the target parameter.
+        - method: string. 'MLE' or 'MoM'. Chooses which model to use.
+        - distribution: 'string' that states which distribution to estimate the parameters from.
+    Outputs:
+        - parameters: tuple with the estimated parameters of the fitted distribution.
+    """
+    if method == 'MLE':
+        dist = getattr(scipy.stats, distribution)
+        return dist.fit(data)
+    else: #'MoM'
+        MoM = Method_of_Moments(data)
+        method_to_call = getattr(MoM, distribution + '_from_moments')
+        return method_to_call()
+
+    
 # github.com/samread81/Distribution-Fitting-Used_Car_Dataset/blob/master/Workbook.ipynb
-def compute_chi_square(data):
+def compute_chi_square(data, method='MLE'):
+    """
+    Function that computes the chi-squared test value and the likelihood of every fitted distribution.
+    Inputs:
+        - data: numpy array with the observations.
+        - method: string. 'MLE' or 'MoM'. Chooses which model to use.
+    Outputs:
+        - results: dataframe with the chi-squared test value, log likelihood and parameters as columns for each distribution as rows.
+    """
     #y,size,_ = standarize(data, 0.99, 0.01)
     size = len(data)
     y = data # Check this
-    dist_names = ['weibull_min', 'norm', 'weibull_max', 'beta', 'invgauss',
-                  'uniform', 'gamma', 'expon', 'lognorm', 'pearson3', 'triang']
+    if method == 'MLE':
+        dist_names = ['weibull_min', 'norm', 'weibull_max', 'beta', 'invgauss', 'uniform', 'gamma', 'expon', 'lognorm', 'pearson3', 'triang']
+    else:
+        dist_names = ['norm', 'beta', 'gamma', 'lognorm']
     
     chi_square_statistics = []
     log_likelihood = []
@@ -144,13 +199,13 @@ def compute_chi_square(data):
     for distribution in dist_names:
         # Set up candidate distribution
         
-        # param = get_parameters(data, method, distribution)        
+        param = get_parameters(data, method, distribution)        
         dist = getattr(scipy.stats, distribution)
-        param = dist.fit(y)
         parameters.append(param)
-        log_likelihood.append(np.sum(np.log(dist.pdf(y, *param))))
-        print('Distribution: ' + distribution + ' || Parameters: ' + str(param))# + '|| Log-likelihood: ' + 
-              #str(log_likelihood) + '\n')
+        ll = log_likelihood_foo(data, param, dist)
+        log_likelihood.append(ll)
+        #log_likelihood.append(np.sum(np.log(dist.pdf(y, *param))))
+        print('Distribution: ' + distribution + ' || Parameters: ' + str(param) + '|| Log-likelihood: ' + str(ll) + '\n')
         
         # CDF
         cdf_fit = dist.cdf(percentile_cutoffs, *param)
@@ -182,16 +237,26 @@ def compute_chi_square(data):
 
 def LRT(best_options, n_datasets, n_sim):
     """
-    Docs: 
+    Function that performs the Likelihood Ratio test of 2 competing distributions.
+    Inputs:
+        - best_options: dataframe with 2 rows of dataframe with the chi-squared test value, log likelihood and parameters as columns for each distribution as rows.
+        - n_datasets: number of datasets S to simulate from the best estimate
+        - n_sim: how many observations to simulate for each dataset
     """
+    # Null Model
     dist_A = getattr(scipy.stats, best_options.iloc[0]['Distribution'])
-    dist_B = getattr(scipy.stats, best_options.iloc[1]['Distribution'])
     ll_A = best_options.iloc[0]['Log_likelihood']
-    ll_B = best_options.iloc[1]['Log_likelihood']
     param = best_options.iloc[0]['Parameters']
     
+    # Alternative Model
+    dist_B = getattr(scipy.stats, best_options.iloc[1]['Distribution'])
+    ll_B = best_options.iloc[1]['Log_likelihood']
+    
+    # LRT Statistic
     Q = 2 * (ll_B - ll_A)
-    Q_array = np.zeros(n_datasets)
+    
+    #P value counter
+    p_value_counter = 0
     
     for i in range(n_datasets):
         # Generate dataset
@@ -206,18 +271,22 @@ def LRT(best_options, n_datasets, n_sim):
         
         # Compute Qi
         Q_i = 2 * (ll_B_i - ll_A_i)
-        Q_array[i] = Q_i 
+        #Q_array[i] = Q_i 
+        
+        if Q_i > Q:
+            p_value_counter += 1
     
-    Quantile_Q = np.quantile(Q_array, 0.95)
-    p_value = np.sum(Q_arrray>Q)/n_datasets
+    #Quantile_Q = np.quantile(Q_array, 0.95)
+    #p_value_1 = np.sum(Q_array>Q)/n_datasets
+    p_value = p_value_counter / n_datasets
 
-    return Q, P_value, Quantile_Q
+    return p_value
 
 import math
 
 def qqplot(data, best_options, n_distributions, title, name_file):
     """
-    QQ Plot: Comment this!
+    QQ Plot: Function that displays and saves a QQ plot of different distributions.
     Inputs:
         - data: Simulated data. Values of the Power output.
         - best_options: dataframe with the results of the fit -> columns |Distribution | Parameters |
@@ -226,7 +295,7 @@ def qqplot(data, best_options, n_distributions, title, name_file):
         - n_distributions: number of distributions desired to be plotted, it should be a number smaller than the number of rows
                            in the 'best_options' dataframe.
         - title: String that will be the title of the plot.
-        - name_file: string that will be the name og the saved file. 
+        - name_file: string that will be the name og the saved file.
     """
     # Cutoffs
     percentile_bins = np.linspace(0,100,51)
@@ -256,18 +325,53 @@ def qqplot(data, best_options, n_distributions, title, name_file):
             min_line = math.floor(min(percentile_data[i]))
         if math.ceil(max(percentile_data[i])) > MAX_line:
             MAX_line = math.ceil(max(percentile_data[i]))
-            
+    
+    min_line = 9.5
+    MAX_line = 12.5
     #Plot
-    f, ax = plt.subplots(figsize=(8,8))
-    ax.plot([min_line, MAX_line], [min_line, MAX_line], ls="--", c=".3")
+    f, ax = plt.subplots(2,2,figsize=(12,12))
     colors = ['orange', 'blue', 'green', 'yellow', 'red', 'pink']
+    indexes = [(0,0),(0,1),(1,0),(1,1)]
     for i in range(n_distributions):
-        ax.scatter(percentile_cutoffs, data_cutoffs[i], c=colors[i], label = names[i] + ' Distribution', s = 40)
-           
-    ax.set_xlabel('Theoretical cumulative distribution')
-    ax.set_ylabel('Observed cumulative distribution')
-    ax.legend()
-    plt.title(title)
+        ax[indexes[i]].plot([min_line, MAX_line], [min_line, MAX_line], ls="--", c=".3")
+        ax[indexes[i]].scatter(percentile_cutoffs, data_cutoffs[i], c=colors[i], label = names[i] + ' Distribution', s = 40)
+        ax[indexes[i]].legend()
+
+    f.suptitle(title, fontsize=15, y=0.93)
+    f.text(0.5, 0.07, 'Theoretical cumulative distribution', ha='center', fontsize = 13)
+    f.text(0.06, 0.5, 'Observed cumulative distribution', va='center', rotation='vertical', fontsize=13)
+    #ax.set_ylabel('Observed cumulative distribution')
     plt.savefig('Data/Plots/'+name_file+".png")
     plt.show()
+    
+from math import erf
+def delta_method(x, data):
+    """
+    Function that computes the mean and variance of an asymptotic normal distribution based on the delta method. This asymptotic distribution represents the CDF of a Normal distribution. 
+    Inputs:
+        - x. int with the value to compute the CDF.
+        - data: numpy array with the observations of the target parameter.
+    """
+    sample_mean = np.mean(data)
+    sample_variance = np.var(data)
+    n = len(data)
+
+    # Covariance matrix
+    variance_sample_mean = sample_variance**2/n
+    variance_sample_variance = (2*sample_variance**4)/(n-1)
+    covariance_matrix = np.array([[variance_sample_mean, 0],[0, variance_sample_variance]])
+
+    # Gradient
+    dg_mu = -(scipy.stats.norm.pdf(x, sample_mean, sample_variance**0.5)/(sample_variance**0.5))
+    dg_sigma = -((x-sample_mean)/sample_variance) * scipy.stats.norm.pdf(x, sample_mean, sample_variance**0.5)
+    gradient = np.array([[dg_mu],[dg_sigma]])
+
+    # Total variance
+    variance = np.matmul(np.matmul(np.transpose(gradient),covariance_matrix),gradient)/n
+    
+    # Total_mean
+    mean = 0.5*(1 + erf((x-sample_mean)/(sample_variance**0.5*2**0.5)))
+    return mean, variance
+        
+      
     
